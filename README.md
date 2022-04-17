@@ -4,5 +4,5 @@
 This is a library that can be used by an end user application to embedded a FCM distributor.
 An [example application](https://github.com/UnifiedPush/android-example) is available to show basic usage of the library.
 
-Please refere to <https://unifiedpush.org> for more information.
+Please refer to <https://unifiedpush.org/developers/embedded_fcm/> for more information.
 
