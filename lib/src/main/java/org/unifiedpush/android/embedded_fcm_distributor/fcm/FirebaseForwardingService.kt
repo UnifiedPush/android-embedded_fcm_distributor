@@ -31,7 +31,7 @@ class FirebaseForwardingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "New Firebase message ${remoteMessage.messageId}")
         // Empty token can be used by app not using an UnifiedPush gateway.
-        val token = remoteMessage.data["i"] ?: getTokens(applicationContext).last()
+        val token = remoteMessage.data["i"] ?: getTokens(applicationContext).lastOrNull() ?: return
         getMessage(remoteMessage.data)?.let { message ->
             forwardMessage(token, message, remoteMessage.messageId ?: "")
         }
