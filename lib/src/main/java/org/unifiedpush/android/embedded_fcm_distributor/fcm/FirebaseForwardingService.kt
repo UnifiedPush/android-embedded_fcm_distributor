@@ -8,7 +8,6 @@ import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONObject
 import org.unifiedpush.android.embedded_fcm_distributor.*
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.getTokens
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.saveFCMToken
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendNewEndpoint
 import java.util.Timer
 import kotlin.concurrent.schedule
@@ -20,11 +19,10 @@ class FirebaseForwardingService : FirebaseMessagingService() {
         private val pendingMessages = mutableMapOf<String, ByteArray>()
     }
 
-    override fun onNewToken(FCMToken: String) {
-        Log.d(TAG, "New FCM token: $FCMToken")
-        saveFCMToken(baseContext, FCMToken)
+    override fun onNewToken(fcmToken: String) {
+        Log.d(TAG, "New FCM token: $fcmToken")
         getTokens(baseContext).forEach {
-            sendNewEndpoint(baseContext, FCMToken, it)
+            sendNewEndpoint(baseContext, fcmToken, it)
         }
     }
 

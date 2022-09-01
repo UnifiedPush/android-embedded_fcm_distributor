@@ -5,9 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.getFCMToken
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.removeToken
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.saveFCMToken
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.saveToken
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendNewEndpoint
 
@@ -26,20 +24,14 @@ open class EmbeddedDistributorReceiver : BroadcastReceiver() {
                 Log.d(TAG, "Registering to the embedded distributor")
                 saveGetEndpoint(context)
                 saveToken(context, token)
-                getFCMToken(context)?.let {
-                    sendNewEndpoint(context, it, token)
-                    return
-                }
-                FirebaseMessaging.getInstance().token.addOnSuccessListener { fcmToken ->
-                    Log.d(TAG, "New FCMToken: $fcmToken")
-                    saveFCMToken(context, fcmToken)
-                    sendNewEndpoint(context, fcmToken, token)
-                }.addOnCompleteListener { task ->
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Log.d(TAG, "Token successfully received")
+                        val fcmToken = task.result
+                        Log.d(TAG, "Token successfully received: $fcmToken")
+                        sendNewEndpoint(context, fcmToken, token)
                     } else {
-                        Log.e(TAG, "FCMToken registration failed: " +
-                                "${task.exception?.localizedMessage}")
+                        Log.w(TAG, "FCMToken registration failed: " +
+                            "${task.exception?.localizedMessage}")
                     }
                 }
             }
