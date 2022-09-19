@@ -28,6 +28,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = false
+    }
+
     namespace "org.unifiedpush.android.embedded_fcm_distributor"
 }
 
