@@ -8,12 +8,12 @@ plugins {
 
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    compileSdk 33
+    buildToolsVersion '33.0.0'
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 30
+        targetSdk 33
         versionCode 1
         versionName "2.1.4"
 
@@ -27,6 +27,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    namespace "org.unifiedpush.android.embedded_fcm_distributor"
 }
 
 dependencies {
