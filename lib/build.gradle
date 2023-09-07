@@ -9,10 +9,9 @@ plugins {
 
 android {
     compileSdk 33
-    buildToolsVersion '33.0.0'
 
     defaultConfig {
-        minSdkVersion 16
+        minSdk 16
         targetSdk 33
         versionCode 1
         versionName "2.2.0"
