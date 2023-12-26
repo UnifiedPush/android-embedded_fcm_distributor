@@ -1,5 +1,6 @@
 package org.unifiedpush.android.embedded_fcm_distributor
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -47,6 +48,7 @@ open class EmbeddedDistributorReceiver : BroadcastReceiver() {
         }
     }
 
+    @SuppressLint("ApplySharedPref")
     private fun saveGetEndpoint(context: Context) {
         val prefs = context.getSharedPreferences(PREF_MASTER, Context.MODE_PRIVATE)
         val ff = 0xff.toChar().toString()
