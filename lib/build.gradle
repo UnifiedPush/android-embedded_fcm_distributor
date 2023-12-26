@@ -8,14 +8,11 @@ plugins {
 
 
 android {
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
-        minSdk 16
-        targetSdk 33
-        versionCode 1
-        versionName "2.2.0"
-
+        minSdk 19
+        targetSdk 34
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
@@ -47,7 +44,7 @@ dependencies {
 
     api("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
 
-    api('com.google.firebase:firebase-messaging:23.2.1') {
+    api('com.google.firebase:firebase-messaging:23.4.0') {
         exclude group: 'com.google.firebase', module: 'firebase-core'
         exclude group: 'com.google.firebase', module: 'firebase-analytics'
         exclude group: 'com.google.firebase', module: 'firebase-measurement-connector'
