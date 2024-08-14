@@ -51,6 +51,23 @@ dependencies {
         exclude group: 'com.google.firebase', module: 'firebase-measurement-connector'
     }
 }
+def releaseGroupId = 'org.unifiedpush.android'
+def releaseArtifactId = 'embedded_fcm_distributor'
+def releaseVersion = '2.4.0'
+
+tasks.register('printArtifactId') {
+    group 'Artifact Info'
+    doLast {
+        println("artifact=$releaseGroupId:$releaseArtifactId")
+    }
+}
+
+tasks.register("printVersion") {
+    group 'Artifact Info'
+    doLast {
+        println("version=$releaseVersion")
+    }
+}
 
 // jitpack build
 afterEvaluate {
@@ -62,9 +79,9 @@ afterEvaluate {
                 from components.release
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'org.unifiedpush.android'
-                artifactId = 'android-embedded_fcm_distributor'
-                version = '2.4.0'
+                groupId = releaseGroupId
+                artifactId = releaseArtifactId
+                version = releaseVersion
             }
         }
     }
