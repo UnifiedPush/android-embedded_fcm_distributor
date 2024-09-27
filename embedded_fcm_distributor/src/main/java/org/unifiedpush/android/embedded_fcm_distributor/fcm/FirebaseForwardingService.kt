@@ -12,9 +12,12 @@ import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendNewEndpoint
 import java.util.Timer
 import kotlin.concurrent.schedule
 
+/**
+ * This service interacts with Google Services and receives FCM message. It is exposed by the library.
+ */
 class FirebaseForwardingService : FirebaseMessagingService() {
 
-    companion object {
+    private companion object {
         private const val TAG = "FirebaseForwarding"
         private val pendingMessages = mutableMapOf<String, ByteArray>()
     }

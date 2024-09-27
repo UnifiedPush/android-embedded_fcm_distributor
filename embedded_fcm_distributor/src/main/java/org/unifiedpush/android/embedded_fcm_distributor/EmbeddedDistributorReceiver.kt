@@ -15,7 +15,43 @@ import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendRegistrationFa
 
 private const val TAG = "UP-Embedded_distributor"
 
+/**
+ * UnifiedPush receiver for the Embedded distributor
+ *
+ * <!-- Note: This must be mirrored in Module.md -->
+ *
+ * ## Expose a receiver
+ *
+ * You need to expose a Receiver that extend [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]
+ * and you must override [getEndpoint][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver.getEndpoint] to return the address of your FCM rewrite-proxy.
+ *
+ * ```kotlin
+ * class EmbeddedDistributor: EmbeddedDistributorReceiver() {
+ *     override fun getEndpoint(context: Context, fcmToken: String, instance: String): String {
+ *         // This returns the endpoint of your FCM Rewrite-Proxy
+ *         return "https://<your.domain.tld>/FCM?v2&instance=$instance&token=$token"
+ *     }
+ * }
+ * ```
+ *
+ * ## Edit your manifest
+ *
+ * The receiver has to be exposed in the `AndroidManifest.xml` in order to receive the UnifiedPush messages.
+ *
+ * ```xml
+ * <receiver android:enabled="true"  android:name=".EmbeddedDistributor" android:exported="false">
+ *     <intent-filter>
+ *         <action android:name="org.unifiedpush.android.distributor.feature.BYTES_MESSAGE"/>
+ *         <action android:name="org.unifiedpush.android.distributor.REGISTER"/>
+ *         <action android:name="org.unifiedpush.android.distributor.UNREGISTER"/>
+ *     </intent-filter>
+ * </receiver>
+ * ```
+ */
 open class EmbeddedDistributorReceiver : BroadcastReceiver() {
+    /**
+     * Returns the address of your FCM rewrite-proxy. You must override it.
+     */
     open fun getEndpoint(context: Context, token: String, instance: String): String {
         return ""
     }
