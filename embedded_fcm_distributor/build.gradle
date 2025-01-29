@@ -19,8 +19,9 @@ android {
     }
 
     defaultConfig {
-        minSdk 21
+        minSdk 16
         targetSdk 34
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
@@ -43,17 +44,11 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-    implementation ('com.google.firebase:firebase-messaging:24.0.0') {
-        exclude group: 'com.google.firebase', module: 'firebase-core'
-        exclude group: 'com.google.firebase', module: 'firebase-analytics'
-        exclude group: 'com.google.firebase', module: 'firebase-measurement-connector'
-    }
-    implementation ('com.google.android.gms:play-services-base:18.5.0')
 }
 
 def releaseGroupId = 'org.unifiedpush.android'
 def releaseArtifactId = 'embedded-fcm-distributor'
-def releaseVersion = '2.5.0'
+def releaseVersion = '3.0.0-rc1'
 
 tasks.register('printArtifactId') {
     group 'Artifact Info'
@@ -69,7 +64,6 @@ tasks.register("printVersion") {
     }
 }
 
-// jitpack build
 afterEvaluate {
     publishing {
         publications {

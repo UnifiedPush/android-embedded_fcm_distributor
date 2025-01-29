@@ -9,14 +9,27 @@
             <action android:name="org.unifiedpush.android.distributor.UNREGISTER" />
         </intent>
     </queries>
+    <queries>
+        <package android:name="com.google.android.gms" />
+    </queries>
 
     <application>
-        <service
-            android:name="org.unifiedpush.android.embedded_fcm_distributor.fcm.FirebaseForwardingService"
-            android:exported="false">
+        <receiver android:name=".impl.FirebaseReceiver"
+            android:exported="true"
+            android:permission="com.google.android.c2dm.permission.SEND">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION"/>
             </intent-filter>
-        </service>
+        </receiver>
+        <receiver android:name=".impl.UnifiedPushReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter android:priority="-500">
+                <action android:name="org.unifiedpush.android.distributor.feature.BYTES_MESSAGE"/>
+                <action android:name="org.unifiedpush.android.distributor.REGISTER"/>
+                <action android:name="org.unifiedpush.android.distributor.UNREGISTER"/>
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -1,8 +1,8 @@
 # Module embedded_fcm_distributor
 
-Embed a FCM distributor as a fallback if user don't have another distributor. Uses Google proprietary blobs.
+Embed a FCM distributor as a fallback if user don't have another distributor. It doesn't contain any Google proprietary blobs.
 
-This library requires Android 5.0 or higher.
+This library requires Android 4.1 or higher.
 
 ## Import the library
 
@@ -11,76 +11,31 @@ Add the dependency to the _module_ build.gradle. Replace {VERSION} with the [lat
 ```groovy
 dependencies {
     // ...
-    implementation 'org.unifiedpush.android:embedded-fcm-distributor:{VERSION}' {
-        exclude group: 'com.google.firebase', module: 'firebase-core'
-        exclude group: 'com.google.firebase', module: 'firebase-analytics'
-        exclude group: 'com.google.firebase', module: 'firebase-measurement-connector'
-    }
-}
+    implementation 'org.unifiedpush.android:embedded-fcm-distributor:{VERSION}'
 ```
 
-## Setup Google Services
+## Usage
 
-Add google-services to the build dependencies, in the _root_ build.gradle. Replace {VERSION} with the [latest version](https://mvnrepository.com/artifact/com.google.gms/google-services).
+Google FCM servers can handle webpush requests out of the box, but they require
+a [VAPID](https://www.rfc-editor.org/rfc/rfc8292) authorization.
 
-```groovy
-classpath 'com.google.gms:google-services:{VERSION}'
-```
+**If your application supports VAPID, you have nothing special to do. You don't need to extend and expose [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]:**
+The library already expose it.
 
-Apply google-services plugin for your fcm flavor in your _module_ build.gradle. (You may need to edit the pattern)
-
-```groovy
-def getCurrentFlavor() {
-    Gradle gradle = getGradle()
-    String  tskReqStr = gradle.getStartParameter().getTaskRequests().toString()
-    String flavor
-
-    Pattern pattern
-
-    if( tskReqStr.contains( "assemble" ) )
-        pattern = Pattern.compile("assemble(\\w+)")
-    else
-        pattern = Pattern.compile("generate(\\w+)")
-
-    Matcher matcher = pattern.matcher( tskReqStr )
-
-    if( matcher.find() ) {
-        flavor = matcher.group(1).toLowerCase()
-    }
-    else
-    {
-        println "NO MATCH FOUND"
-        return ""
-    }
-
-    pattern = Pattern.compile("^fcm.*");
-    matcher = pattern.matcher(flavor);
-
-    if( matcher.matches() ) {
-        return "fcm"
-    } else {
-        return "main"
-    }
-}
-
-println("Flavor: ${getCurrentFlavor()}")
-if ( getCurrentFlavor() == "fcm" ){
-    apply plugin: 'com.google.gms.google-services'
-}
-```
-
-Download `google-services.json` from the [firebase console](https://console.firebase.google.com/project/_/settings/serviceaccounts/adminsdk), and add it to the _module_ directory.
+Else, you need to use a gateway that will add VAPID authorizations to the
+responses. For this, you need to extend and expose [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver].
 
 ## Expose a receiver
 
-You need to expose a Receiver that extend [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]
-and you must override [getEndpoint][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver.getEndpoint] to return the address of your FCM rewrite-proxy.
+**If your application doesn't support VAPID**, you need to expose a Receiver that extend [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]
+and you must override [gateway][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver.gateway].
 
 ```kotlin
-class EmbeddedDistributor: EmbeddedDistributorReceiver() {
-    override fun getEndpoint(context: Context, fcmToken: String, instance: String): String {
-        // This returns the endpoint of your FCM Rewrite-Proxy
-        return "https://<your.domain.tld>/FCM?v2&instance=$instance&token=$token"
+override val gateway = object : Gateway {
+    override val vapid = "BJVlg_p7GZr_ZluA2ace8aWj8dXVG6hB5L19VhMX3lbVd3c8IqrziiHVY3ERNVhB9Jje5HNZQI4nUOtF_XkUIyI"
+
+    override fun getEndpoint(token: String): String {
+        return "https://fcm.example.unifiedpush.org/FCM?v3&token=$token"
     }
 }
 ```

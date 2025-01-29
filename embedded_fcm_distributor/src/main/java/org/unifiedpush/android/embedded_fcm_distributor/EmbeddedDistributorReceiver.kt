@@ -1,35 +1,43 @@
 package org.unifiedpush.android.embedded_fcm_distributor
 
-import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
-import com.google.firebase.messaging.FirebaseMessaging
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.removeToken
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.saveToken
-import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendNewEndpoint
+import org.unifiedpush.android.embedded_fcm_distributor.Utils.registerFCM
 import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendRegistrationFailed
+import org.unifiedpush.android.embedded_fcm_distributor.Utils.sendUnregistered
 
-private const val TAG = "UP-Embedded_distributor"
+private const val TAG = "UP-FCMD"
 
 /**
  * UnifiedPush receiver for the Embedded distributor
  *
  * <!-- Note: This must be mirrored in Module.md -->
  *
+ * Google FCM servers can handle webpush requests out of the box, but they require
+ * a [VAPID](https://www.rfc-editor.org/rfc/rfc8292) authorization.
+ *
+ * **If your application supports VAPID, you have nothing special to do. You don't need to extend and expose [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]:**
+ * The library already expose it.
+ *
+ * Else, you need to use a gateway that will add VAPID authorizations to the
+ * responses. For this, you need to extend and expose [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver].
+ *
  * ## Expose a receiver
  *
- * You need to expose a Receiver that extend [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]
- * and you must override [getEndpoint][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver.getEndpoint] to return the address of your FCM rewrite-proxy.
+ * **If your application doesn't support VAPID**, you need to expose a Receiver that extend [EmbeddedDistributorReceiver][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver]
+ * and you must override [gateway][org.unifiedpush.android.embedded_fcm_distributor.EmbeddedDistributorReceiver.gateway].
  *
  * ```kotlin
- * class EmbeddedDistributor: EmbeddedDistributorReceiver() {
- *     override fun getEndpoint(context: Context, fcmToken: String, instance: String): String {
- *         // This returns the endpoint of your FCM Rewrite-Proxy
- *         return "https://<your.domain.tld>/FCM?v2&instance=$instance&token=$token"
+ * override val gateway = object : Gateway {
+ *     override val vapid = "BJVlg_p7GZr_ZluA2ace8aWj8dXVG6hB5L19VhMX3lbVd3c8IqrziiHVY3ERNVhB9Jje5HNZQI4nUOtF_XkUIyI"
+ *
+ *     override fun getEndpoint(token: String): String {
+ *         return "https://fcm.example.unifiedpush.org/FCM?v3&token=$token"
  *     }
  * }
  * ```
@@ -49,67 +57,69 @@ private const val TAG = "UP-Embedded_distributor"
  * ```
  */
 open class EmbeddedDistributorReceiver : BroadcastReceiver() {
-    /**
-     * Returns the address of your FCM rewrite-proxy. You must override it.
-     */
-    open fun getEndpoint(context: Context, token: String, instance: String): String {
-        return ""
-    }
+    open val gateway: Gateway? = null
 
     override fun onReceive(context: Context, intent: Intent) {
         val token = intent.getStringExtra(EXTRA_TOKEN) ?: return
-        Log.d(TAG, "New intent for $token")
+        Log.d(TAG, "New intent for ${token.substring(0, 3)}xxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxx")
         when (intent.action) {
             ACTION_REGISTER -> {
+                if (!checkAppOrigin(context, intent)) {
+                    Log.d(TAG, "Received an intent from another package. Aborting.")
+                    return
+                }
                 Log.d(TAG, "Registering to the embedded distributor")
-                saveGetEndpoint(context)
-                saveToken(context, token)
-                when (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)) {
-                    ConnectionResult.SUCCESS -> Log.d(TAG, "PlayServices available")
-                    ConnectionResult.SERVICE_MISSING,
-                    ConnectionResult.SERVICE_DISABLED,
-                    ConnectionResult.SERVICE_INVALID -> {
-                        Log.w(TAG, "PlayServices Missing, disabled or invalid. Sending registration failed")
-                        sendRegistrationFailed(context, token, "PlayServices not available")
-                        return
-                    }
-                    ConnectionResult.SERVICE_UPDATING,
-                    ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> {
-                        Log.w(TAG, "PlayServices updating or require an update.")
-                        sendRegistrationFailed(context, token, "PlayServices temporarily not available")
-                        return
-                    }
+                var useGateway = false
+                if (!isPlayServicesAvailable(context)) {
+                    sendRegistrationFailed(context, token, FailedReason.ACTION_REQUIRED)
+                    return
                 }
-                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val fcmToken = task.result
-                        Log.d(TAG, "Token successfully received: $fcmToken")
-                        sendNewEndpoint(context, fcmToken, token)
-                    } else {
-                        Log.w(TAG, "FCMToken registration failed: " +
-                            "${task.exception?.localizedMessage}")
-                        sendRegistrationFailed(context, token, "FCM (PlayServices) token not received")
-                    }
+                val vapid = intent.getStringExtra(EXTRA_VAPID)
+                    ?: gateway?.let {
+                        Utils.saveEndpoint(context, it)
+                        useGateway = true
+                        it.vapid
+                    } ?: run {
+                    Log.d(TAG, "Received registration without a VAPID key. And gateway" +
+                            "is not defined: sending registration failed with VAPID_REQUIRED reason")
+                    sendRegistrationFailed(context, token, FailedReason.VAPID_REQUIRED)
+                    return
                 }
+                registerFCM(context, token, vapid, useGateway)
             }
             ACTION_UNREGISTER -> {
-                Log.d(TAG, "Fake Distributor unregister")
-                removeToken(context, token)
-                val broadcastIntent = Intent()
-                broadcastIntent.`package` = context.packageName
-                broadcastIntent.action = ACTION_UNREGISTERED
-                broadcastIntent.putExtra(EXTRA_TOKEN, token)
-                context.sendBroadcast(broadcastIntent)
+                Log.d(TAG, "Unregistered")
+                sendUnregistered(context, token)
             }
         }
     }
 
-    @SuppressLint("ApplySharedPref")
-    private fun saveGetEndpoint(context: Context) {
-        val prefs = context.getSharedPreferences(PREF_MASTER, Context.MODE_PRIVATE)
-        val ff = 0xff.toChar().toString()
-        prefs.edit().putString(EXTRA_GET_ENDPOINT,
-            getEndpoint(context, "$ff$ff.TOKEN.$ff$ff", "$ff$ff.INSTANCE.$ff$ff")
-        ).commit()
+    /**
+     * Check if the request really come from this app.
+     *
+     * This should always be true, but we do the check in case the receiver
+     * has been exported.
+     */
+    private fun checkAppOrigin(context: Context, intent: Intent): Boolean {
+        return (if (Build.VERSION.SDK_INT < 17) {
+            // We do not check origin for SDK 16
+            context.packageName
+        } else if (Build.VERSION.SDK_INT >= 34) {
+            sentFromPackage
+        } else {
+                intent.getParcelableExtra<PendingIntent>(EXTRA_PI)?.creatorPackage
+        }) == context.packageName
+    }
+
+    private fun isPlayServicesAvailable(context: Context): Boolean {
+        val pm = context.packageManager
+        try {
+            pm.getPackageInfo(GSF_PACKAGE, PackageManager.GET_ACTIVITIES)
+            return true
+
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.v(TAG, e.message!!)
+        }
+        return false
     }
 }

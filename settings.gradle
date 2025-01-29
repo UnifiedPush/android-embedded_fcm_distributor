@@ -1,2 +1,2 @@
 include ':embedded_fcm_distributor'
-rootProject.name = "UnifiedPush EFCMD"
+rootProject.name = "UnifiedPush_EFCMD"
